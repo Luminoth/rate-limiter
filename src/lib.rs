@@ -1,3 +1,7 @@
 #![deny(warnings)]
 
-pub mod bucket;
+mod bucket;
+mod error;
+
+pub use bucket::*;
+pub use error::*;

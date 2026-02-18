@@ -30,21 +30,14 @@ impl<'a> TokenBucketContainer<'a> {
         Self::Redis(RedisTokenBucketContainer::new(config, connection_manager))
     }
 
-    /// Call when a new request comes in to lazily refill access tokens
-    pub async fn on_request(&self, id: impl Into<String>) -> anyhow::Result<()> {
-        match self {
-            TokenBucketContainer::Memory(c) => c.on_request(id).await,
-            TokenBucketContainer::Redis(c) => c.on_request(id).await,
-        }
-    }
-
-    /// Call before processing a new request to determine if the requester has tokens available
+    /// Check if the request is allowed.
     ///
-    /// This will consume one token from the requester's pool
-    pub async fn allow_request(&self, id: impl AsRef<str>) -> anyhow::Result<bool> {
+    /// This will automatically refill tokens based on elapsed time and consume one token
+    /// if available. Returns `true` if the request is allowed, `false` otherwise.
+    pub async fn check(&self, id: impl AsRef<str>) -> crate::Result<bool> {
         match self {
-            TokenBucketContainer::Memory(c) => c.allow_request(id).await,
-            TokenBucketContainer::Redis(c) => c.allow_request(id).await,
+            TokenBucketContainer::Memory(c) => c.check(id).await,
+            TokenBucketContainer::Redis(c) => c.check(id).await,
         }
     }
 }
