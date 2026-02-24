@@ -6,10 +6,10 @@ use moka::future::Cache;
 use parking_lot::Mutex;
 use tracing::debug;
 
-use super::TokenBucketConfig;
+use crate::TokenBucketConfig;
 
-#[derive(Debug)]
-pub(crate) struct TokenBucket {
+#[derive(Debug, Copy, Clone)]
+struct TokenBucket {
     current_tokens: f64,   // float for precision refill
     last_refill_time: i64, // milliseconds
 }
@@ -23,12 +23,13 @@ impl TokenBucket {
     }
 }
 
-pub struct MemoryTokenBucketContainer<'a> {
+#[derive(Debug, Clone)]
+pub struct MemoryStorage<'a> {
     config: &'a TokenBucketConfig,
     buckets: Cache<String, Arc<Mutex<TokenBucket>>>,
 }
 
-impl<'a> MemoryTokenBucketContainer<'a> {
+impl<'a> MemoryStorage<'a> {
     pub fn new(config: &'a TokenBucketConfig) -> Self {
         let time_to_fill_seconds =
             (config.max_tokens as f64 / config.refill_rate as f64).ceil() as u64;
@@ -86,47 +87,47 @@ mod tests {
     #[tokio::test]
     #[traced_test]
     async fn simple_test() {
-        let container = MemoryTokenBucketContainer::new(&TokenBucketConfig {
+        let storage = MemoryStorage::new(&TokenBucketConfig {
             max_tokens: 4,
             refill_rate: 1,
         });
 
-        assert_eq!(container.check("test").await.unwrap(), true);
-        assert_eq!(container.check("test").await.unwrap(), true);
-        assert_eq!(container.check("test").await.unwrap(), true);
-        assert_eq!(container.check("test").await.unwrap(), true);
-        assert_eq!(container.check("test").await.unwrap(), false);
+        assert_eq!(storage.check("test").await.unwrap(), true);
+        assert_eq!(storage.check("test").await.unwrap(), true);
+        assert_eq!(storage.check("test").await.unwrap(), true);
+        assert_eq!(storage.check("test").await.unwrap(), true);
+        assert_eq!(storage.check("test").await.unwrap(), false);
     }
 
     #[tokio::test]
     #[traced_test]
     async fn refill_test() {
-        let container = MemoryTokenBucketContainer::new(&TokenBucketConfig {
+        let storage = MemoryStorage::new(&TokenBucketConfig {
             max_tokens: 1,
             refill_rate: 1,
         });
 
-        assert_eq!(container.check("refill").await.unwrap(), true);
-        assert_eq!(container.check("refill").await.unwrap(), false);
+        assert_eq!(storage.check("refill").await.unwrap(), true);
+        assert_eq!(storage.check("refill").await.unwrap(), false);
 
         tokio::time::sleep(std::time::Duration::from_millis(2000)).await;
 
-        assert_eq!(container.check("refill").await.unwrap(), true);
+        assert_eq!(storage.check("refill").await.unwrap(), true);
     }
 
     #[tokio::test]
     #[traced_test]
     async fn ttl_test() {
-        let container = MemoryTokenBucketContainer::new(&TokenBucketConfig {
+        let storage = MemoryStorage::new(&TokenBucketConfig {
             max_tokens: 1,
             refill_rate: 1,
         });
 
-        assert_eq!(container.check("ttl").await.unwrap(), true);
-        assert_eq!(container.check("ttl").await.unwrap(), false);
+        assert_eq!(storage.check("ttl").await.unwrap(), true);
+        assert_eq!(storage.check("ttl").await.unwrap(), false);
 
         tokio::time::sleep(std::time::Duration::from_millis(2500)).await;
 
-        assert_eq!(container.check("ttl").await.unwrap(), true);
+        assert_eq!(storage.check("ttl").await.unwrap(), true);
     }
 }
