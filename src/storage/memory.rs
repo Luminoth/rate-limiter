@@ -15,7 +15,7 @@ struct TokenBucket {
 }
 
 impl TokenBucket {
-    pub(crate) fn new(max_tokens: usize, current_time: i64) -> Self {
+    fn new(max_tokens: usize, current_time: i64) -> Self {
         Self {
             current_tokens: max_tokens as f64,
             last_refill_time: current_time,
