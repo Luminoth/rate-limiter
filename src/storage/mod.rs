@@ -26,7 +26,7 @@ impl<'a> Storage<'a> {
 
     pub async fn check(&self, id: impl AsRef<str>) -> crate::Result<bool> {
         match self {
-            Self::Memory(c) => c.check(id).await,
+            Self::Memory(c) => Ok(c.check(id).await),
             Self::Redis(c) => c.check(id).await,
         }
     }

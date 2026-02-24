@@ -40,7 +40,7 @@ impl<'a> MemoryStorage<'a> {
         Self { config, buckets }
     }
 
-    pub async fn check(&self, id: impl AsRef<str>) -> crate::Result<bool> {
+    pub async fn check(&self, id: impl AsRef<str>) -> bool {
         let id = id.as_ref().to_string();
         let current_time = Utc::now().timestamp_millis();
 
@@ -70,10 +70,10 @@ impl<'a> MemoryStorage<'a> {
         if bucket.current_tokens >= 1.0 {
             debug!("Consuming one token for {id}");
             bucket.current_tokens -= 1.0;
-            Ok(true)
+            true
         } else {
             debug!("No tokens available for {id}");
-            Ok(false)
+            false
         }
     }
 }
@@ -92,11 +92,11 @@ mod tests {
             refill_rate: 1,
         });
 
-        assert_eq!(storage.check("test").await.unwrap(), true);
-        assert_eq!(storage.check("test").await.unwrap(), true);
-        assert_eq!(storage.check("test").await.unwrap(), true);
-        assert_eq!(storage.check("test").await.unwrap(), true);
-        assert_eq!(storage.check("test").await.unwrap(), false);
+        assert_eq!(storage.check("test").await, true);
+        assert_eq!(storage.check("test").await, true);
+        assert_eq!(storage.check("test").await, true);
+        assert_eq!(storage.check("test").await, true);
+        assert_eq!(storage.check("test").await, false);
     }
 
     #[tokio::test]
@@ -107,12 +107,12 @@ mod tests {
             refill_rate: 1,
         });
 
-        assert_eq!(storage.check("refill").await.unwrap(), true);
-        assert_eq!(storage.check("refill").await.unwrap(), false);
+        assert_eq!(storage.check("refill").await, true);
+        assert_eq!(storage.check("refill").await, false);
 
         tokio::time::sleep(std::time::Duration::from_millis(2000)).await;
 
-        assert_eq!(storage.check("refill").await.unwrap(), true);
+        assert_eq!(storage.check("refill").await, true);
     }
 
     #[tokio::test]
@@ -123,11 +123,11 @@ mod tests {
             refill_rate: 1,
         });
 
-        assert_eq!(storage.check("ttl").await.unwrap(), true);
-        assert_eq!(storage.check("ttl").await.unwrap(), false);
+        assert_eq!(storage.check("ttl").await, true);
+        assert_eq!(storage.check("ttl").await, false);
 
         tokio::time::sleep(std::time::Duration::from_millis(2500)).await;
 
-        assert_eq!(storage.check("ttl").await.unwrap(), true);
+        assert_eq!(storage.check("ttl").await, true);
     }
 }
